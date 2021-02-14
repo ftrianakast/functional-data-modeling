@@ -22,7 +22,7 @@ object subtyping {
    * Determine the relationship between `Animal` and `Dog`, and encode that using either
    * `IsSubtypeOf` or `IsSupertypeOf`.
    */
-  type Exercise1 = TODO
+  type Exercise1 = IsSupertypeOf[Animal, Dog]
 
   /**
    * EXERCISE 2
@@ -30,7 +30,7 @@ object subtyping {
    * Determine the relationship between `Dog` and `Animal` (in that order), and encode that using
    * either `IsSubtypeOf` or `IsSupertypeOf`.
    */
-  type Exercise2 = TODO
+  type Exercise2 = IsSubtypeOf[Dog, Animal]
 
   /**
    * EXERCISE 3
@@ -38,7 +38,7 @@ object subtyping {
    * Determine the relationship between `Animal` and `Cat`, and encode that using either
    * `IsSubtypeOf` or `IsSupertypeOf`.
    */
-  type Exercise3 = TODO
+  type Exercise3 = IsSupertypeOf[Animal, Cat]
 
   /**
    * EXERCISE 4
@@ -46,7 +46,7 @@ object subtyping {
    * Determine the relationship between `Cat` and `Animal` (in that order), and encode that using
    * either `IsSubtypeOf` or `IsSupertypeOf`.
    */
-  type Exercise4 = TODO
+  type Exercise4 = IsSubtypeOf[Cat, Animal]
 
   /**
    * EXERCISE 5
@@ -58,7 +58,7 @@ object subtyping {
    * In this exercise, use the right type operator such that the examples that should compile do
    * compile, but the examples that should not compile do not compile.
    */
-  def isInstanceOf[A, B](a: A): Unit = ???
+  def isInstanceOf[A, B >: A](a: A): Unit = ???
 
   lazy val mustCompile1    = isInstanceOf[Ripley.type, Dog](Ripley)
   lazy val mustCompile2    = isInstanceOf[Midnight.type, Cat](Midnight)
@@ -71,7 +71,7 @@ object subtyping {
    * The following data type imposes no restriction on the guests who stay at the hotel. Using
    * the subtyping or supertyping operators, ensure that only animals may stay at the hotel.
    */
-  final case class PetHotel[A](rooms: List[A])
+  final case class PetHotel[A <: Animal](rooms: List[A])
 }
 
 /**
@@ -89,6 +89,9 @@ object invariance {
   object Midnight extends Cat
   object Ripley   extends Dog
 
+  // A subtipo de B   -->  F[A] subtipo  F[B]  --> covarianza
+  // A subtipo de B   -->  F[B] subtiüp de F[A]  --> contravarianza
+
   trait PetHotel[A <: Animal] {
     def book(pet: A): Unit = println(s"Booked a room for ${pet}")
   }
@@ -105,7 +108,10 @@ object invariance {
    *
    * Take note of your findings.
    */
-  def bookMidnightAndRipley(animalHotel: PetHotel[Animal]): Unit = ???
+  def bookMidnightAndRipley(animalHotel: PetHotel[Animal]): Unit = {
+    //bookRipley(animalHotel)
+    //bookMidnight(animalHotel)
+  }
 
   trait PetDeliveryService[A <: Animal] {
     def acceptDelivery: A
@@ -127,7 +133,12 @@ object invariance {
    *
    * Take note of your findings.
    */
-  def acceptRipleyDogAnimal(delivery: PetDeliveryService[Ripley.type]): Unit = ???
+  def acceptRipleyDogAnimal(delivery: PetDeliveryService[Ripley.type]): Unit = {
+    acceptRipley(delivery)
+    acceptDog(delivery)
+    acceptAnimal(delivery)
+  }
+
 }
 
 /**
@@ -192,7 +203,9 @@ object covariance {
   sealed trait List[+A] {
     def concat[A1 >: A](that: List[A1]): List[A1] = ???
 
-    // def append(a: A): List[A]
+    def concat2(that: List[A]): List[A] = ???
+
+    def append[A1 >: A](a: A1): List[A]
   }
 }
 
@@ -215,7 +228,7 @@ object contravariance {
    * never occurs as output from any method on `PetHotel` (it occurs only as input to the `book`
    * method).
    */
-  trait PetHotel[A <: Animal] {
+  trait PetHotel[-A <: Animal] {
     def book(pet: A): Unit = println(s"Booked a room for ${pet}")
   }
 
@@ -231,7 +244,7 @@ object contravariance {
    *
    * Take note of your findings.
    */
-  def bookMidnightAndRipley(animalHotel: PetHotel[Animal]): Unit = ???
+  def bookMidnightAndRipley(animalHotel: PetHotel[Animal]): Unit = bookRipley(animalHotel)
 
   /**
    * EXERCISE 3
@@ -247,7 +260,19 @@ object contravariance {
   sealed trait Consumer[-A] {
     def merge[A1 <: A](that: Consumer[A1]): Consumer[A1] = ???
 
-    /// def fallback[A](that: Consumer[A]): Consumer[A]
+    def fallback[A1 <: A](that: Consumer[A1]): Consumer[A1] = ???
+  }
+
+  object Chimbiando {
+    sealed trait AnimalService {
+
+      // Cat <: Animal --> Factory[Animal] <: Factory[Cat]
+      def extractAnimal(p: Factory[Cat]): Animal =
+        ???
+    }
+
+    // No entendemos contravarianza
+
   }
 }
 
@@ -264,8 +289,14 @@ object variance_zeros {
    * The type `Nothing` can be used when a covariant type parameter is not being used. For example,
    * an empty list does not use any element type, because it has no elements.
    */
-  type Answer1
+  type Answer1           = Nothing
   type UnusedListElement = List[Answer1]
+
+  sealed trait MyList[+A]
+  object MyList {
+    object Nil                      extends MyList[Nothing]
+    final case class Const[A](a: A) extends MyList[A]
+  }
 
   /**
    * EXERCISE 2
@@ -273,7 +304,7 @@ object variance_zeros {
    * The type `Any` can be used when a contravariant type parameter is not being used. For example,
    * a constant function does not use its input element.
    */
-  type Answer2
+  type Answer2                 = Any
   type UnusedFunctionInput[+B] = Answer2 => B
 }
 
@@ -303,5 +334,59 @@ object advanced_variance {
      * implement it by following its types.
      */
     // def fallback(that: Workflow[Input, Error, Output]): Workflow[Input, Error, Output] = ???
+  }
+
+  object Other {
+
+    // List[A] <: Seq[A] => Order[Seq[A]] <: Order[List[A]]
+    trait Event
+    trait UserEvent        extends Event
+    trait SystemEvent      extends Event
+    trait ApplicationEvent extends SystemEvent
+    trait ErrorEvent       extends ApplicationEvent
+
+    trait Sink[-In] {
+      def notify(o: In)
+    }
+
+    def appEventFired(e: ApplicationEvent, s: Sink[ApplicationEvent]): Unit =
+      // do some processing related to the event
+      // notify the event sink
+      s.notify(e)
+
+    def errorEventFired(e: ErrorEvent, s: Sink[ErrorEvent]): Unit =
+      // do some processing related to the event
+      // notify the event sink
+      s.notify(e)
+
+    trait SystemEventSink extends Sink[SystemEvent]
+
+    val ses = new SystemEventSink {
+      override def notify(o: SystemEvent): Unit = ???
+    }
+
+    trait GenericEventSink extends Sink[Event]
+
+    val ges = new GenericEventSink {
+      override def notify(o: Event): Unit = ???
+    }
+
+    appEventFired(new ApplicationEvent {}, ses)
+    errorEventFired(new ErrorEvent     {}, ges)
+    appEventFired(new ApplicationEvent {}, ges)
+  }
+
+  object Zoo {
+
+    sealed trait Animal
+    object Animal {
+      final case class Dog(name: String) extends Animal
+      final case class Cat(name: String) extends Animal
+    }
+
+    trait Vet[+T] {
+      def heal[T](animal: T): Boolean
+    }
+
   }
 }

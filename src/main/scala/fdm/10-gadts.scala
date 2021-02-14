@@ -20,7 +20,9 @@ object gadts {
    */
   sealed trait ConversionType[A]
   object ConversionType {
-    case object ToInt extends ConversionType[Int]
+    case object ToInt    extends ConversionType[Int]
+    case object ToString extends ConversionType[String]
+    case object ToFloat  extends ConversionType[Float]
   }
 
   /**
@@ -31,10 +33,16 @@ object gadts {
    *
    * Take note of the relationship between the conversion type parameter, and the return value of
    * the `convert` function.
+   *
+   * Intellij IDEA does not suppor GADTs
    */
-  def convert[A](string: String, conversionType: ConversionType[A]): A =
-    ???
-
+  def convert[A](string: String, conversionType: ConversionType[A]): A = ???
+  /*  conversionType match Pair{
+      case ConversionType.ToInt    => string.toInt
+      case ConversionType.ToString => string
+      case ConversionType.ToFloat  => string.toFloat
+    }
+   */
   /**
    * EXERCISE 3
    *
@@ -89,8 +97,8 @@ object gadts_classic {
     final case class MultDouble()
   }
 
-  def calculate[A](spreadsheet: Spreadsheet, calculatedValue: CalculatedValue[A]): A =
-    calculatedValue match {
+  def calculate[A](spreadsheet: Spreadsheet, calculatedValue: CalculatedValue[A]): A = ???
+  /*   calculatedValue match {
       case CalculatedValue.Integer(value) => value
-    }
+    }*/
 }

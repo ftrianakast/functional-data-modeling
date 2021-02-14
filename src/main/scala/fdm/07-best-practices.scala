@@ -40,8 +40,33 @@ object eliminate_intersection {
      * user events OR device events (but NOT both), and which permits events that have timestamps
      * or lack timestamps; but which always have event ids.
      */
-    type Event = TODO
+    object MySolution {
+      sealed trait Event
+      object Event {
+        final case class UserEvent(id: String, userId: String, timedNotion: TimedNotion)     extends Event
+        final case class DeviceEvent(id: String, deviceId: String, timedNotion: TimedNotion) extends Event
+      }
+
+      sealed trait TimedNotion
+      object TimedNotion {
+        final case class Timed(time: java.time.Instant) extends TimedNotion
+        object NonTimed                                 extends TimedNotion
+      }
+    }
+
+    object AnotherSolution {
+      sealed trait Event {
+        val userId: String
+        val timestamp: Option[java.time.Instant]
+      }
+
+      object Event {
+        case class UserEvent(userId: String, timestamp: Option[java.time.Instant])   extends Event
+        case class DeviceEvent(userId: String, timestamp: Option[java.time.Instant]) extends Event
+      }
+    }
   }
+
 }
 
 /**
@@ -67,10 +92,11 @@ object extract_product {
    */
   sealed trait AdvertisingEvent
   object AdvertisingEvent {
-    case object None                                                           extends AdvertisingEvent
-    final case class Impression(pageUrl: String, data: String)                 extends AdvertisingEvent
-    final case class Click(pageUrl: String, elementId: String, data: String)   extends AdvertisingEvent
-    final case class Action(pageUrl: String, actionName: String, data: String) extends AdvertisingEvent
+    case object None                                                  extends AdvertisingEvent
+    final case class Impression(eventType: EventType)                 extends AdvertisingEvent
+    final case class Click(elementId: String, eventType: EventType)   extends AdvertisingEvent
+    final case class Action(actionName: String, eventType: EventType) extends AdvertisingEvent
+    final case class EventType(pageUrl: String, data: String)
   }
 
   /**
@@ -81,12 +107,14 @@ object extract_product {
    * case class, and introduce a new field called `cardType`, which captures card-specific details
    * for the different event types.
    */
-  sealed trait Card
-  object Card {
-    final case class Clubs(points: Int)    extends Card
-    final case class Diamonds(points: Int) extends Card
-    final case class Spades(points: Int)   extends Card
-    final case class Hearts(points: Int)   extends Card
+  final case class Card(points: Int, cardType: CardType)
+
+  sealed trait CardType
+  object CardType {
+    final object Clubs    extends CardType
+    final object Diamonds extends CardType
+    final object Spades   extends CardType
+    final object Hearts   extends CardType
   }
 
   /**
@@ -99,6 +127,16 @@ object extract_product {
     final case class UserPurchase(userId: String, amount: Double, timestamp: java.time.Instant)        extends Event
     final case class UserReturn(userId: String, itemId: String, timestamp: java.time.Instant)          extends Event
     final case class SystemRefund(orderId: String, refundAmount: Double, timestamp: java.time.Instant) extends Event
+  }
+
+  object Exercise3Solution {
+    final case class Event(timestamp: java.time.Instant, eventType: EventType)
+    sealed trait EventType
+    object EventType {
+      final case class UserPurchase(userId: String, amount: Double)        extends EventType
+      final case class UserReturn(userId: String, itemId: String)          extends EventType
+      final case class SystemRefund(orderId: String, refundAmount: Double) extends EventType
+    }
   }
 }
 
@@ -127,6 +165,15 @@ object extract_sum {
     school: Option[Enrollment]                       // full-time student
   )
 
+  object MeineSolution {
+    final case class Person(name: String, employment: Employment)
+    sealed trait Employment
+    object Employment {
+      final case class Employed(job: Job, employmentData: java.time.LocalDateTime) extends Employment
+      final case class Student(school: Enrollment)                                 extends Employment
+    }
+  }
+
   /**
    * EXERCISE 2
    *
@@ -141,23 +188,67 @@ object extract_sum {
     purchase: Option[String] // for user order events
   )
 
+  object EventSolution {
+    final case class Event(timestamp: java.time.Instant, eventType: EventType)
+    sealed trait EventType
+    object EventType {
+      final case class UserEvent(userId: String, eventSource: EventSource) extends EventType
+      final case class SensoredEvent(reading: Double)                      extends EventType
+    }
+
+    sealed trait EventSource
+    object EventSource {
+      final case class OrderedEvent(event: String) extends EventSource
+      final case class SourcedEvent(event: String) extends EventSource
+    }
+  }
+
+  object EventSolutionAnother {
+    final case class Event[A](
+      eventSource: EventSource,
+      timestamp: java.time.Instant,
+      eventType: EventType[A]
+    )
+
+    sealed trait EventSource
+    object EventSource {
+      final case class Device(id: String) extends EventSource
+      final case class User(id: String)   extends EventSource
+    }
+
+    sealed trait EventType[A]
+    object EventType {
+      final case class Reading(value: Double)  extends EventType[EventSource.Device]
+      final case class Click(value: String)    extends EventType[EventSource.User]
+      final case class Purchase(value: String) extends EventType[EventSource.User]
+    }
+  }
+
   /**
    * EXERCISE 3
    *
    * Extract out a missing enumeration from the following data type.
    */
   final case class CreditCard(
-    digit16: Option[Digit16],    // For VISA
-    digit15: Option[Digit15],    // For AMEX
-    securityCode: Option[Digit4] // For VISA
+    digit16: Option[Digit16],      // For VISA
+    digit15: Option[Digit15],      // For AMEX
+    securityCode4: Option[Digit4], // For VISA
+    securityCode3: Option[Digit3]
   )
 
   final case class Digit16(group1: Digit4, group2: Digit4, group3: Digit4, group4: Digit4)
-
   final case class Digit15(group1: Digit4, group2: Digit4, group3: Digit4, group4: Digit3)
-
   final case class Digit4(v1: Digit, v2: Digit, v3: Digit, v4: Digit)
   final case class Digit3(v1: Digit, v2: Digit, v3: Digit)
+
+  object CreditCardSolution {
+    final case class CreditCard(creditCardType: CreditCardType)
+    sealed trait CreditCardType
+    object CreditCardType {
+      final case class Visa(digit16: Digit16, securityCode: Digit4) extends CreditCardType
+      final case class Amex(digit15: Digit15, securityCode: Digit3) extends CreditCardType
+    }
+  }
 
   sealed trait Digit {
     case object _0 extends Digit
@@ -201,6 +292,16 @@ object seal_data_trait {
   trait GroupOwnedDocument extends Document {
     def ownerIds: List[String]
   }
+
+  object DocumentSolution {
+    final case class Document(id: String, documentType: DocumentType)
+    sealed trait DocumentType
+    object DocumentType {
+      final case class OwnedDocument(ownerId: String)               extends DocumentType
+      final object AnonymusDocument                                 extends DocumentType
+      final case class GroupedOwnedDocument(ownerIds: List[String]) extends DocumentType
+    }
+  }
 }
 
 /**
@@ -226,6 +327,15 @@ object eliminate_wildcard {
       case _                =>
     }
 
+  object WildCardSolution1 {
+    def pageDeveloper(event: Event, onCall: Phone): Unit =
+      event match {
+        case Event.ServerDown       => sendText(onCall, "The server is down, please look into it right away!")
+        case Event.ServiceRestarted =>
+        case Event.AnotherObject    =>
+      }
+  }
+
   /**
    * EXERCISE 2
    *
@@ -236,6 +346,7 @@ object eliminate_wildcard {
   object Event {
     case object ServerDown       extends Event
     case object ServiceRestarted extends Event
+    case object AnotherObject    extends Event
   }
 }
 
@@ -266,6 +377,19 @@ object eliminate_typecase {
       case _                           =>
     }
 
+  object MySolution {
+    sealed trait Event
+    object Event {
+      final case class Click(href: String)                extends Event
+      final case class Purchase(id: String, item: String) extends Event
+    }
+    def logIdentifiedEvents(event: Event): Unit =
+      event match {
+        case MySolution.Event.Click(_)        =>
+        case MySolution.Event.Purchase(id, _) => println("User event: " + id)
+      }
+  }
+
 }
 
 /**
@@ -287,7 +411,7 @@ object nested_shadowing {
   def count[A](list: List[A]): Int =
     list match {
       case Nil       => 0
-      case _ :: tail => 1 + count(list)
+      case _ :: list => 1 + count(list)
     }
 
   sealed trait UserBehavior
@@ -314,7 +438,7 @@ object nested_shadowing {
       case Anything => false
       case Sequence(first, second) =>
         analyzePattern(first) || analyzePattern(second)
-      case Not(value) =>
+      case Not(b) =>
         analyzePattern(b)
     }
 }

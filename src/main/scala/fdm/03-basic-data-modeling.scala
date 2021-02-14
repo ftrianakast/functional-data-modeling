@@ -1,5 +1,8 @@
 package fdm
 
+import java.io.File
+import java.time.Instant
+
 import scala.annotation.tailrec
 
 /**
@@ -13,7 +16,7 @@ object product_modeling {
    * Using a case class, create a model of a product, which has a name, description, and a price.
    *
    */
-  final case class Product()
+  final case class Product(name: String, description: String, price: BigDecimal)
 
   /**
    * EXERCISE 2
@@ -21,7 +24,7 @@ object product_modeling {
    * Using a case class, create a model of a a user profile, which has a picture URL, and text-
    * based location (indicating the geographic area where the user is from).
    */
-  final case class UserProfile()
+  final case class UserProfile(pictureUrl: String, location: String)
 
   /**
    * EXERCISE 3
@@ -29,7 +32,7 @@ object product_modeling {
    * Using a case class, create a model of an item that can be posted on LinkedIn's feed. This
    * item contains a subject and some text.
    */
-  final case class FeedItem()
+  final case class FeedItem(subject: String, text: String)
 
   /**
    * EXERCISE 4
@@ -37,7 +40,7 @@ object product_modeling {
    * Using a case class, create a model of an event, which has an event id, a timestamp, and a
    * map of properties (String/String).
    */
-  final case class Event()
+  final case class Event(id: String, eventId: String, timeStamp: Instant, properties: Map[String, String])
 }
 
 /**
@@ -54,7 +57,10 @@ object sum_modeling {
    */
   sealed trait Color
   object Color {
-    case object Red extends Color
+    case object Red                                 extends Color
+    case object Green                               extends Color
+    case object Blue                                extends Color
+    final case class Custom(r: Int, g: Int, b: Int) extends Color
   }
 
   /**
@@ -66,6 +72,8 @@ object sum_modeling {
   sealed trait WebEvent
   object WebEvent {
     final case class PageLoad(url: String) extends WebEvent
+    final object ButtonClick               extends WebEvent
+    final case class UrlClick(url: String) extends WebEvent
   }
 
   /**
@@ -76,7 +84,13 @@ object sum_modeling {
    */
   sealed trait AgeBracket
   object AgeBracket {
-    case object Child extends AgeBracket
+    case object Baby        extends AgeBracket
+    case object Child       extends AgeBracket
+    case object Teenager    extends AgeBracket
+    case object YoungAdult  extends AgeBracket
+    case object Adult       extends AgeBracket
+    case object MatureAdult extends AgeBracket
+    case object SeniorAdult extends AgeBracket
   }
 
   /**
@@ -89,7 +103,9 @@ object sum_modeling {
   type Json
   sealed trait JsonPipelineStep
   object JsonPipeline {
-    final case class Transform(fn: Json => Json) extends JsonPipelineStep
+    final case class Transform(fn: Json => Json)                        extends JsonPipelineStep
+    final case class Aggregate(initial: Json, fn: (Json, Json) => Json) extends JsonPipelineStep
+    final case class SaveTofile(file: String)                           extends JsonPipelineStep
   }
 }
 
@@ -106,7 +122,26 @@ object mixed_modeling {
    * would consist of a number of items, each with a certain price, and an overall price, including
    * shipping and handling charges.
    */
-  type Order = TODO
+  final case class Order(
+    items: List[Item],
+    overallPrice: BigDecimal,
+    shippingCharge: BigDecimal,
+    handlingCharge: BigDecimal
+  )
+  final case class Item(price: BigDecimal)
+
+  object RandomGuySolution {
+    type Currency
+    case class Amount(value: Int, currency: Currency)
+    case class OrderItem(price: Int, description: String)
+    case class Order(items: Seq[OrderItem], totalPrice: Amount, charges: Seq[OrderCharge])
+
+    sealed trait OrderCharge
+    object OrderCharge {
+      final case class Shipping(cost: Amount) extends OrderCharge
+      final case class Handling(cost: Amount) extends OrderCharge
+    }
+  }
 
   /**
    * EXERCISE 2
@@ -114,7 +149,9 @@ object mixed_modeling {
    * Using only case classes and enums, create a model of an `Email`, which contains a subject,
    * a body, a recipient, and a from address.
    */
-  type Email = TODO
+  final case class Email(subject: String, body: String, recipient: List[Recipient], from: Address)
+  final case class Address(email: String)
+  final case class Recipient(address: Address)
 
   /**
    * EXERCISE 3
@@ -123,7 +160,62 @@ object mixed_modeling {
    * system, which could consist of predefined elements, such as a news feed, a photo gallery,
    * and other elements, arranged in some well-defined way relative to each other.
    */
-  type PageLayout = TODO
+  object MySolution {
+    sealed trait LayoutElement
+    case object PredefinedElement extends LayoutElement
+    case object NewsFeed          extends LayoutElement
+    case object PhotoGallery      extends LayoutElement
+  }
+
+  object SomeSolution {
+    sealed trait Element
+    object Element {
+      final case class NewsFeed()     extends Element
+      final case class PhotoGallery() extends Element
+    }
+    final case class Placement(element: Element, vertical: Range, horizontal: Range)
+    final case class PageLayout(elements: List[Placement])
+  }
+
+  object OtherPersonSolution {
+    final case class PageLayout(elem: PageElement)
+
+    sealed trait PageElement
+    object PageElement {
+      case object Empty                                 extends PageElement
+      final case class Gallery()                        extends PageElement
+      final case class NewsFeed()                       extends PageElement
+      final case class Article()                        extends PageElement
+      final case class Row(elements: List[PageElement]) extends PageElement
+      final case class Col(elements: List[PageElement]) extends PageElement
+    }
+
+    // A page with a main part of some stuff and a news feed on the right
+    lazy val layout = PageLayout(
+      PageElement.Row(
+        List(
+          PageElement.Col(
+            List(
+              PageElement.Gallery(),
+              PageElement.Article(),
+              PageElement.Article()
+            )
+          ),
+          PageElement.NewsFeed()
+        )
+      )
+    )
+  }
+
+  object DeGoesSolution {
+    sealed trait PageLayout
+    object PageLayout {
+      case object NewsFeed                                             extends PageLayout
+      case object PhotoGallery                                         extends PageLayout
+      final case class Horizontal(left: PageLayout, right: PageLayout) extends PageLayout
+      final case class Vertical(top: PageLayout, bottom: PageLayout)   extends PageLayout
+    }
+  }
 
   /**
    * EXERCISE 4
@@ -131,7 +223,27 @@ object mixed_modeling {
    * Using only case classes and enums, create a model of a rule that describes the conditions for
    * triggering an email to be sent to a shopper on an e-commerce website.
    */
-  type EmailTriggerRule = TODO
+  object MyIncorrectSolution {
+    sealed trait EmailTriggerRule
+    final case class SubjectContains(string: String)                      extends EmailTriggerRule
+    final case class BodyContains(string: String)                         extends EmailTriggerRule
+    final case class SenderIn(senders: Set[Address])                      extends EmailTriggerRule
+    final case class RecipientIn(recipients: Set[Address])                extends EmailTriggerRule
+    final case class And(left: EmailTriggerRule, right: EmailTriggerRule) extends EmailTriggerRule
+    final case class Or(left: EmailTriggerRule, right: EmailTriggerRule)  extends EmailTriggerRule
+    final case class Negate(emailFilter: EmailTriggerRule)                extends EmailTriggerRule
+  }
+
+  object PossibleSolution {
+    sealed trait EmailTriggerRule
+    object EmailTriggerRule {
+      object ShopperAbandons                                                extends EmailTriggerRule
+      final case class After(days: Int)                                     extends EmailTriggerRule
+      final case class And(left: EmailTriggerRule, right: EmailTriggerRule) extends EmailTriggerRule
+      final case class Or(left: EmailTriggerRule, right: EmailTriggerRule)  extends EmailTriggerRule
+      final case class Negate(emailFilter: EmailTriggerRule)                extends EmailTriggerRule
+    }
+  }
 }
 
 object basic_dm_graduation {
@@ -167,18 +279,68 @@ object basic_dm_graduation {
    * The data type should model the player, non-player characters, and items available to pick up
    * or drop in the game world.
    */
-  final case class State()
+  object MySolution {
+    final case class State(players: List[Character], items: List[Item])
 
-  def describe(state: State): String =
+    sealed trait Character
+    final case class Player(username: String)  extends Character
+    final case class NonPlayable(name: String) extends Character
+
+    sealed trait Item
+    final case class DropableItem(data: ItemData) extends Item
+    final case class PickableItem(data: ItemData) extends Item
+    final case class ItemData(name: String)
+  }
+
+  object DGoesSolution {
+    final case class State(currentLocation: Location, player: Character, gameMap: GameMap) {
+      def items: List[Item] = ???
+    }
+    final case class Character(
+      name: String,
+      stats: CharStats,
+      clazz: CharClass,
+      status: CharStatus,
+      equipped: List[Item],
+      iventory: List[Item]
+    )
+
+    final case class Item(name: String, itemType: ItemType)
+    sealed trait ItemType
+    object Item {
+      final case class Weapon(damage: Int, durability: Int) extends ItemType
+      final case class Food(energyBoost: Int)               extends ItemType
+      final case class HealingPotion(healthBoost: Int)      extends ItemType
+    }
+
+    final case class Location(name: String, items: List[Item], npcs: List[Character])
+    final case class GameMap(set: Set[Location], connected: Map[Location, Set[Location]])
+
+    final case class CharStats(health: Int, charClass: CharClass, charStatus: CharStatus)
+    sealed trait CharClass
+    object CharClass {
+      case object Wizard  extends CharClass
+      case object Warrior extends CharClass
+    }
+
+    sealed trait CharStatus
+    object CharStatus {
+      case object Normal   extends CharStatus
+      case object Poisoned extends CharStatus
+      case object Cursed   extends CharStatus
+    }
+  }
+
+  def describe(state: DGoesSolution.State): String =
     "You are playing this game."
 
-  def process(state: State, command: Command): (String, Option[State]) =
+  def process(state: DGoesSolution.State, command: Command): (String, Option[DGoesSolution.State]) =
     if (command == Command.Quit) ("You quitted", None)
     else (s"You did: ${command}, which had no effect.", Some(state))
 
   def main(args: Array[String]): Unit = {
     @tailrec
-    def loop(state: State): Unit = {
+    def loop(state: DGoesSolution.State): Unit = {
       println(describe(state))
 
       val line = scala.io.StdIn.readLine()
@@ -200,6 +362,8 @@ object basic_dm_graduation {
       }
     }
 
-    loop(State())
+    loop(
+      ???
+    )
   }
 }
